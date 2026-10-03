@@ -16,6 +16,12 @@ const GHOST_SPEED = 0.1;    // 1/10 celda/frame
 // Esquina de huida de Clyde (celda transitable inferior-izquierda).
 const CLYDE_CORNER = { x: 1, y: 29 };
 
+// Celda de salida de la pen: arriba de la puerta.
+const PEN_EXIT = { x: 13, y: 11 };
+
+// Frames de espera en la pen antes de salir, uno tras otro (estilo clasico).
+const RELEASE_DELAY = { blinky: 0, pinky: 0, inky: 90, clyde: 180 };
+
 // Crea una partida nueva. Copia MAZE (pristino) a game.grid para poder comer
 // dots sin destruir el original, y reiniciar.
 function createGame() {
@@ -45,6 +51,7 @@ function createGame() {
       dir: 'up',
       speed: GHOST_SPEED,
       kind: g.kind,
+      wait: RELEASE_DELAY[ g.kind ] || 0,
     } ) ),
   };
 }
@@ -65,6 +72,12 @@ function isWall( grid, x, y, actor ) {
   return false;
 }
 
+// El fantasma esta dentro de la pen (interior o sobre la puerta)?
+function inPen( x, y ) {
+  if ( y === 12 && ( x === 13 || x === 14 ) ) return true; // puerta
+  return x >= 11 && x <= 16 && y >= 13 && y <= 15;         // interior
+}
+
 // Puede el actor avanzar desde (x,y) en la direccion dir?
 function canMove( grid, x, y, dir, actor ) {
   const d = DIRS[ dir ];
@@ -73,7 +86,10 @@ function canMove( grid, x, y, dir, actor ) {
   const ty = y + d.y;
   // Tunel: salir por un borde en la fila del tunel siempre es valido.
   if ( ty === TUNNEL_ROW && ( tx < 0 || tx >= grid[ 0 ].length ) ) return true;
-  return !isWall( grid, tx, ty, actor );
+  if ( isWall( grid, tx, ty, actor ) ) return false;
+  // Puerta pen: un fantasma fuera de la jaula no puede volver a entrar.
+  if ( actor === 'ghost' && grid[ ty ][ tx ] === 3 && !inPen( x, y ) ) return false;
+  return true;
 }
 
 function wrapTunnel( a, width ) {
@@ -119,6 +135,9 @@ function movePacman( game ) {
 // referencia de distancia, nunca se camina hacia el directamente.
 function targetFor( game, g ) {
   const p = game.pacman;
+  // Dentro de la pen la prioridad es salir por la puerta; la personalidad
+  // se aplica al llegar a la celda de salida.
+  if ( inPen( Math.round( g.x ), Math.round( g.y ) ) ) return PEN_EXIT;
   // Blinky (agresivo): la celda actual de Pac-Man.
   if ( g.kind === 'blinky' ) {
     return { x: Math.round( p.x ), y: Math.round( p.y ) };
@@ -176,6 +195,12 @@ function decideGhost( game, g ) {
 }
 
 function moveGhost( game, g ) {
+  // Espera de salida de la pen: el fantasma esta inmovil hasta su turno.
+  if ( g.wait > 0 ) {
+    g.wait--;
+    return;
+  }
+
   const grid = game.grid;
   const width = grid[ 0 ].length;
 
@@ -202,6 +227,7 @@ function resetPositions( game ) {
     g.x = GHOST_STARTS[ i ].x;
     g.y = GHOST_STARTS[ i ].y;
     g.dir = 'up';
+    g.wait = RELEASE_DELAY[ g.kind ] || 0;
   } );
 }
 
