@@ -1,6 +1,6 @@
 # SPEC 02 — Power pellets y modo asustado
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 01
 > **Date:** 2026-10-03
 > **Objective:** Añadir 4 power pellets al laberinto que activan un modo asustado de ~6 s durante el cual Pac-Man puede comer fantasmas.
