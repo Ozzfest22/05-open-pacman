@@ -1,6 +1,6 @@
 # SPEC 01 — Cuatro fantasmas con personalidades clásicas
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Date:** 2026-09-28
 > **Objective:** Añadir los 4 fantasmas clásicos de Pac-Man (Blinky, Pinky, Inky y Clyde), cada uno con su propia estrategia de persecución, con Blinky persiguiendo agresivamente a Pac-Man.
 
