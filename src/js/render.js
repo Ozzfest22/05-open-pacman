@@ -79,6 +79,23 @@ function drawDots( ctx, grid ) {
   }
 }
 
+// Ultimos 2 s del modo asustado: parpadeo blanco de aviso.
+const FRIGHT_FLASH = 120;
+
+// Power pellets: circulos blancos grandes (radio 6 px).
+function drawPellets( ctx, grid ) {
+  ctx.fillStyle = '#fff';
+  for ( let y = 0; y < grid.length; y++ ) {
+    for ( let x = 0; x < grid[ 0 ].length; x++ ) {
+      if ( grid[ y ][ x ] !== 4 ) continue;
+      const { cx, cy } = cellCenter( x, y );
+      ctx.beginPath();
+      ctx.arc( cx, cy, 6, 0, Math.PI * 2 );
+      ctx.fill();
+    }
+  }
+}
+
 function drawPacman( ctx, p, frame ) {
   const { cx, cy } = cellCenter( p.x, p.y );
   let rot = 0;
@@ -147,6 +164,17 @@ function drawHUD( ctx, game, W ) {
 // Orden de aparicion: Blinky rojo, Pinky rosa, Inky cian, Clyde naranja.
 const GHOST_COLORS = [ '#ff0000', '#ffb8ff', '#00ffff', '#ffb852' ];
 
+// Color de un fantasma segun el modo asustado.
+function ghostColor( game, i, frame ) {
+  const t = game.frightenedTimer;
+  if ( t <= 0 ) return GHOST_COLORS[ i ] || '#ff0000';
+  if ( t <= FRIGHT_FLASH ) {
+    // Parpadeo: alterna azul/blanco cada 15 frames en los ultimos 2 s.
+    return Math.floor( frame / 15 ) % 2 ? '#ffffff' : '#2121ff';
+  }
+  return '#2121ff';
+}
+
 function draw( ctx, game, frame ) {
   const grid = game.grid;
   const W = grid[ 0 ].length;
@@ -158,8 +186,9 @@ function draw( ctx, game, frame ) {
   drawWalls( ctx, grid );
   drawDoor( ctx, grid );
   drawDots( ctx, grid );
+  drawPellets( ctx, grid );
   drawPacman( ctx, game.pacman, frame );
-  game.ghosts.forEach( ( g, i ) => drawGhost( ctx, g, GHOST_COLORS[ i ] || '#ff0000' ) );
+  game.ghosts.forEach( ( g, i ) => drawGhost( ctx, g, ghostColor( game, i, frame ) ) );
   drawHUD( ctx, game, W );
 }
 
