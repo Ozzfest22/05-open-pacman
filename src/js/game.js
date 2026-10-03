@@ -13,6 +13,9 @@ const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
 const PACMAN_SPEED = 0.125; // 1/8 celda/frame -> alinea cada 8 frames
 const GHOST_SPEED = 0.1;    // 1/10 celda/frame
 
+// Esquina de huida de Clyde (celda transitable inferior-izquierda).
+const CLYDE_CORNER = { x: 1, y: 29 };
+
 // Crea una partida nueva. Copia MAZE (pristino) a game.grid para poder comer
 // dots sin destruir el original, y reiniciar.
 function createGame() {
@@ -124,6 +127,20 @@ function targetFor( game, g ) {
   if ( g.kind === 'pinky' ) {
     const d = DIRS[ p.dir ];
     return { x: Math.round( p.x ) + d.x * 4, y: Math.round( p.y ) + d.y * 4 };
+  }
+  // Inky (vectorial): 2 x (Pacman + 2*dir) - posicion de Blinky.
+  if ( g.kind === 'inky' ) {
+    const blinky = game.ghosts[ 0 ];
+    const d = DIRS[ p.dir ];
+    return {
+      x: 2 * ( Math.round( p.x ) + d.x * 2 ) - blinky.x,
+      y: 2 * ( Math.round( p.y ) + d.y * 2 ) - blinky.y,
+    };
+  }
+  // Clyde (timido): persigue si esta lejos de Pac-Man, si no huye a su esquina.
+  if ( g.kind === 'clyde' ) {
+    const dist = Math.abs( g.x - Math.round( p.x ) ) + Math.abs( g.y - Math.round( p.y ) );
+    return dist > 8 ? { x: Math.round( p.x ), y: Math.round( p.y ) } : CLYDE_CORNER;
   }
   // kind desconocido (o sin estrategia aun): deambular.
   return null;
