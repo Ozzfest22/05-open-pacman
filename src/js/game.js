@@ -120,6 +120,11 @@ function targetFor( game, g ) {
   if ( g.kind === 'blinky' ) {
     return { x: Math.round( p.x ), y: Math.round( p.y ) };
   }
+  // Pinky (emboscador): la celda 4 por delante de Pac-Man en su direccion.
+  if ( g.kind === 'pinky' ) {
+    const d = DIRS[ p.dir ];
+    return { x: Math.round( p.x ) + d.x * 4, y: Math.round( p.y ) + d.y * 4 };
+  }
   // kind desconocido (o sin estrategia aun): deambular.
   return null;
 }
