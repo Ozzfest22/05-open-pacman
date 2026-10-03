@@ -51,9 +51,13 @@ const MAZE = MAZE_STR.map( ( row ) => row.split( '' ).map( parseTile ) );
 
 const TUNNEL_ROW = 14;
 const PACMAN_START = { x: 13, y: 23 };
+// El orden del array es contrato: game.ghosts[0] es Blinky, porque Inky
+// lee su posicion para calcular su vector de persecucion.
 const GHOST_STARTS = [
-  { x: 13, y: 14, kind: 'hunter' }, // dentro de la pen
-  { x: 14, y: 14, kind: 'random' }, // dentro de la pen
+  { x: 13, y: 11, kind: 'blinky' }, // fuera de la pen
+  { x: 13, y: 14, kind: 'pinky' },  // pen
+  { x: 11, y: 14, kind: 'inky' },   // pen
+  { x: 15, y: 14, kind: 'clyde' },  // pen
 ];
 
 window.MAZE = MAZE;

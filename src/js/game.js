@@ -110,9 +110,22 @@ function movePacman( game ) {
   wrapTunnel( p, width );
 }
 
+// Celda objetivo de un fantasma segun su personalidad.
+// Devuelve { x, y } en celdas, o null si no hay target (fallback aleatorio).
+// El target puede caer en celda-muro o fuera del laberinto: solo se usa como
+// referencia de distancia, nunca se camina hacia el directamente.
+function targetFor( game, g ) {
+  const p = game.pacman;
+  // Blinky (agresivo): la celda actual de Pac-Man.
+  if ( g.kind === 'blinky' ) {
+    return { x: Math.round( p.x ), y: Math.round( p.y ) };
+  }
+  // kind desconocido (o sin estrategia aun): deambular.
+  return null;
+}
+
 function decideGhost( game, g ) {
   const grid = game.grid;
-  const p = game.pacman;
 
   const options = Object.keys( DIRS ).filter(
     ( dir ) => dir !== OPPOSITE[ g.dir ] && canMove( grid, g.x, g.y, dir, 'ghost' )
@@ -120,25 +133,24 @@ function decideGhost( game, g ) {
   // Sin salida (callejon): permitir el giro de 180.
   const choices = options.length ? options : [ '' + OPPOSITE[ g.dir ] ];
 
-  if ( g.kind === 'hunter' ) {
-    const px = Math.round( p.x );
-    const py = Math.round( p.y );
-    let best = choices[ 0 ];
-    let bestDist = Infinity;
-    for ( const dir of choices ) {
-      const d = DIRS[ dir ];
-      const nx = g.x + d.x;
-      const ny = g.y + d.y;
-      const dist = Math.abs( nx - px ) + Math.abs( ny - py );
-      if ( dist < bestDist ) {
-        bestDist = dist;
-        best = dir;
-      }
-    }
-    g.dir = best;
-  } else {
+  const target = targetFor( game, g );
+  if ( !target ) {
     g.dir = choices[ Math.floor( Math.random() * choices.length ) ];
+    return;
   }
+
+  // Elegir el cruce que mas reduce la distancia Manhattan al target.
+  let best = choices[ 0 ];
+  let bestDist = Infinity;
+  for ( const dir of choices ) {
+    const d = DIRS[ dir ];
+    const dist = Math.abs( g.x + d.x - target.x ) + Math.abs( g.y + d.y - target.y );
+    if ( dist < bestDist ) {
+      bestDist = dist;
+      best = dir;
+    }
+  }
+  g.dir = best;
 }
 
 function moveGhost( game, g ) {
