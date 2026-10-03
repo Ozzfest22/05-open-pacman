@@ -16,6 +16,9 @@ const GHOST_SPEED = 0.1;    // 1/10 celda/frame
 // Puntos por comer un power pellet.
 const PELLET_SCORE = 50;
 
+// Duracion del modo asustado en frames (6 s a 60 fps).
+const FRIGHT_FRAMES = 360;
+
 // Esquina de huida de Clyde (celda transitable inferior-izquierda).
 const CLYDE_CORNER = { x: 1, y: 29 };
 
@@ -41,6 +44,8 @@ function createGame() {
     score: 0,
     lives: 3,
     dotsRemaining: dots,
+    frightenedTimer: 0, // frames restantes del modo asustado; 0 = apagado
+    ghostChain: 0,      // indice en GHOST_EAT_SCORES (paso 3)
     grid,
     pacman: {
       x: PACMAN_START.x,
@@ -123,11 +128,15 @@ function movePacman( game ) {
       game.score += 10;
       game.dotsRemaining--;
     }
-    // Comer power pellet (el modo asustado se activa en el paso 2).
+    // Comer power pellet: activa el modo asustado.
     else if ( grid[ p.y ][ p.x ] === 4 ) {
       grid[ p.y ][ p.x ] = 0;
       game.score += PELLET_SCORE;
       game.dotsRemaining--;
+      game.frightenedTimer = FRIGHT_FRAMES;
+      game.ghostChain = 0;
+      // Todos los fantasmas invierten su direccion al instante.
+      game.ghosts.forEach( ( g ) => { g.dir = OPPOSITE[ g.dir ]; } );
     }
     // Si no puede seguir, se detiene en la celda.
     if ( !canMove( grid, p.x, p.y, p.dir, 'pacman' ) ) return;
@@ -148,6 +157,8 @@ function targetFor( game, g ) {
   // Dentro de la pen la prioridad es salir por la puerta; la personalidad
   // se aplica al llegar a la celda de salida.
   if ( inPen( Math.round( g.x ), Math.round( g.y ) ) ) return PEN_EXIT;
+  // Modo asustado: fuera de la pen el target es null -> deambular aleatorio.
+  if ( game.frightenedTimer > 0 ) return null;
   // Blinky (agresivo): la celda actual de Pac-Man.
   if ( g.kind === 'blinky' ) {
     return { x: Math.round( p.x ), y: Math.round( p.y ) };
@@ -222,8 +233,10 @@ function moveGhost( game, g ) {
   }
 
   const d = DIRS[ g.dir ];
-  g.x += d.x * g.speed;
-  g.y += d.y * g.speed;
+  // Los fantasmas asustados se mueven a la mitad de velocidad.
+  const speed = game.frightenedTimer > 0 ? GHOST_SPEED / 2 : GHOST_SPEED;
+  g.x += d.x * speed;
+  g.y += d.y * speed;
   wrapTunnel( g, width );
 }
 
@@ -260,6 +273,9 @@ function update( game ) {
       break;
     }
   }
+
+  // Decrementar el modo asustado al final del frame, tras las colisiones.
+  if ( game.frightenedTimer > 0 ) game.frightenedTimer--;
 
   if ( game.dotsRemaining <= 0 ) game.state = 'won';
 }
