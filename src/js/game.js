@@ -19,6 +19,9 @@ const PELLET_SCORE = 50;
 // Duracion del modo asustado en frames (6 s a 60 fps).
 const FRIGHT_FRAMES = 360;
 
+// Puntos por comer un fantasma asustado: cadena 200 -> 400 -> 800 -> 1600.
+const GHOST_EAT_SCORES = [ 200, 400, 800, 1600 ];
+
 // Esquina de huida de Clyde (celda transitable inferior-izquierda).
 const CLYDE_CORNER = { x: 1, y: 29 };
 
@@ -61,6 +64,7 @@ function createGame() {
       speed: GHOST_SPEED,
       kind: g.kind,
       wait: RELEASE_DELAY[ g.kind ] || 0,
+      eaten: false, // comido en esta ronda; no se puede volver a comer
     } ) ),
   };
 }
@@ -262,20 +266,45 @@ function update( game ) {
   movePacman( game );
   game.ghosts.forEach( ( g ) => moveGhost( game, g ) );
 
-  for ( const g of game.ghosts ) {
-    if ( collides( game.pacman, g ) ) {
-      game.lives--;
-      if ( game.lives <= 0 ) {
-        game.state = 'lost';
-        return;
-      }
-      resetPositions( game );
-      break;
+  for ( let i = 0; i < game.ghosts.length; i++ ) {
+    const g = game.ghosts[ i ];
+    if ( !collides( game.pacman, g ) ) continue;
+
+    // Modo asustado activo: el fantasma es comible (una sola vez por ronda).
+    if ( game.frightenedTimer > 0 ) {
+      if ( g.eaten ) continue;
+      game.score += GHOST_EAT_SCORES[ Math.min( game.ghostChain, GHOST_EAT_SCORES.length - 1 ) ];
+      game.ghostChain++;
+      g.eaten = true;
+      // Vuelve a su celda de salida y espera a salir de nuevo.
+      const start = GHOST_STARTS[ i ];
+      g.x = start.x;
+      g.y = start.y;
+      g.dir = 'up';
+      g.wait = RELEASE_DELAY[ g.kind ] || 0;
+      continue;
     }
+
+    // Sin modo asustado: perder vida y apagar el modo si estuviera activo.
+    game.lives--;
+    game.frightenedTimer = 0;
+    game.ghosts.forEach( ( gh ) => { gh.eaten = false; } );
+    if ( game.lives <= 0 ) {
+      game.state = 'lost';
+      return;
+    }
+    resetPositions( game );
+    break;
   }
 
   // Decrementar el modo asustado al final del frame, tras las colisiones.
-  if ( game.frightenedTimer > 0 ) game.frightenedTimer--;
+  if ( game.frightenedTimer > 0 ) {
+    game.frightenedTimer--;
+    // Fin del modo: los fantasmas comidos vuelven a ser comibles.
+    if ( game.frightenedTimer === 0 ) {
+      game.ghosts.forEach( ( gh ) => { gh.eaten = false; } );
+    }
+  }
 
   if ( game.dotsRemaining <= 0 ) game.state = 'won';
 }
