@@ -13,6 +13,9 @@ const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
 const PACMAN_SPEED = 0.125; // 1/8 celda/frame -> alinea cada 8 frames
 const GHOST_SPEED = 0.1;    // 1/10 celda/frame
 
+// Puntos por comer un power pellet.
+const PELLET_SCORE = 50;
+
 // Esquina de huida de Clyde (celda transitable inferior-izquierda).
 const CLYDE_CORNER = { x: 1, y: 29 };
 
@@ -30,7 +33,8 @@ function createGame() {
   grid[ PACMAN_START.y ][ PACMAN_START.x ] = 0;
 
   let dots = 0;
-  for ( const row of grid ) for ( const v of row ) if ( v === 2 ) dots++;
+  // Los power pellets (4) cuentan igual que los dots: sin comerlos no se gana.
+  for ( const row of grid ) for ( const v of row ) if ( v === 2 || v === 4 ) dots++;
 
   return {
     state: 'start',
@@ -117,6 +121,12 @@ function movePacman( game ) {
     if ( grid[ p.y ][ p.x ] === 2 ) {
       grid[ p.y ][ p.x ] = 0;
       game.score += 10;
+      game.dotsRemaining--;
+    }
+    // Comer power pellet (el modo asustado se activa en el paso 2).
+    else if ( grid[ p.y ][ p.x ] === 4 ) {
+      grid[ p.y ][ p.x ] = 0;
+      game.score += PELLET_SCORE;
       game.dotsRemaining--;
     }
     // Si no puede seguir, se detiene en la celda.
